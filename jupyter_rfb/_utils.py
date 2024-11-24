@@ -12,6 +12,20 @@ from ._jpg import array2jpg
 
 _original_print = builtins.print
 
+jpegxl_usable = False
+try:
+    from imagecodecs import jpegxl_encode, jpegxl_decode
+    jpegxl_usable=True
+except ImportError:
+    print("wasnt able to use jpegxl from imagecodecs, falling back to jpeg/png")
+
+def array2compressed_jxl(array, quality):
+    if quality >= 100:
+        result = jpegxl_encode(array, lossless=True, effort=1, numthreads=4) # fjxl
+    else:
+        result = jpegxl_encode(array, lossless=False, effort=1, numthreads=4)
+    return "image/jxl", result
+
 
 def array2compressed(array, quality=90):
     """Convert the given image (a numpy array) as a compressed array.
@@ -23,6 +37,9 @@ def array2compressed(array, quality=90):
     # Drop alpha channel if there is one
     if len(array.shape) == 3 and array.shape[2] == 4:
         array = array[:, :, :3]
+
+    if jpegxl_usable:
+        return array2compressed_jxl(array, quality)
 
     if quality >= 100:
         mimetype = "image/png"
